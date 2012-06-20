@@ -1,0 +1,12 @@
+{application, pacman,
+ [
+  {description, ""},
+  {vsn, "1"},
+  {registered, []},
+  {applications, [
+                  kernel,
+                  stdlib
+                 ]},
+  {mod, { pacman_app, []}},
+  {env, []}
+ ]}.
