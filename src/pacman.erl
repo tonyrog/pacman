@@ -12,6 +12,10 @@
 -export([start/0, start_link/0]).
 -export([run_game/1]).
 
+-export([start_link_embedded_fb/0]).
+-export([start_link_embedded_x11/0]).
+-export([run_game1/2]).
+
 -import(lists, [map/2]).
 
 -ifdef(debug).
@@ -157,7 +161,30 @@ start_link() ->
     epx:start(),
     Backend = epx_backend:default(),
     {ok,proc_lib:spawn_link(?MODULE, run_game, [Backend])}.
+
+%% test - create window and backing pixmap 800x480
+start_link_embedded_fb() ->
+    epx_backend:start_link([{backend,"fb"},{pixel_format,r5g6b5}]),
+    W = epx:window_create(0,0,800,480,[key_press,key_release]),
+    P = epx:pixmap_create(800, 480, r5g6b5),
+    Backend = epx_backend:default(),
+    epx:window_attach(W, Backend),
+    epx:pixmap_attach(P, Backend),
+    run_game1(W, P).
+
+start_link_embedded_x11() ->
+    epx_backend:start_link([{backend,"x11"}]),
+    W = epx:window_create(0,0,800,480,[key_press,key_release]),
+    P = epx:pixmap_create(800, 480, r5g6b5),
+    Backend = epx_backend:default(),
+    epx:window_attach(W, Backend),
+    epx:pixmap_attach(P, Backend),
+    run_game1(W, P).
     
+
+run_game1(W, P) ->
+    game_loop(init1(W, P)).
+
 run_game(Backend) ->
     game_loop(init(Backend)).
 
@@ -279,15 +306,20 @@ init(Backend) ->
     Height = (?BlockSize+1)*?NBlocks,
     Win    = epx:window_create(50, 50, Width, Height,[key_press,key_release]),
     epx:window_attach(Win, Backend),
-    Goff  = epx:pixmap_create(Width, Height),
-    epx:pixmap_attach(Goff, Backend),
+    Pix  = epx:pixmap_create(Width, Height),
+    epx:pixmap_attach(Pix, Backend),
+    init1(Win, Pix).
+
+init1(Win, Pix) ->
+    Width = ?BlockSize*?NBlocks,
+    Height = (?BlockSize+1)*?NBlocks,    
     %% g.setFont(smallfont);
     %% fmsmall = g.getFontMetrics();
     %% g.setFont(largefont);
     %% fmlarge = g.getFontMetrics();
 
     G = #game {  win    = Win,
-		 goff   = Goff,
+		 goff   = Pix,
 		 width  = Width,
 		 height = Height,
 		 images = load_images(),
