@@ -217,15 +217,15 @@ check_input(G) ->
 	    G
     end.
 
-key_down(Key, G) when G#game.ingame == false ->
-    if Key == $s; Key == $S ->
-	    game_init(G#game { ingame = true });
-       Key == $q; Key == $Q ->
-	    G#game { quit = true };
-       true ->
-	    G
+key_down(Key, G) when not G#game.ingame ->
+    case Key of
+	$s -> game_init(G#game { ingame = true });
+	$S -> game_init(G#game { ingame = true });
+	$q -> G#game { quit = true };
+	$Q -> G#game { quit = true };
+	_  -> G
     end;
-key_down(Key, G) when G#game.ingame == true ->       
+key_down(Key, G) ->
     case Key of
 	27 ->    G#game { ingame = false };
 	$q   ->  G#game { quit = true };
@@ -235,24 +235,23 @@ key_down(Key, G) when G#game.ingame == true ->
 	up ->    G#game { reqdx = 0,  reqdy = -1 };
 	down ->  G#game { reqdx = 0,  reqdy = 1 };
 	_ -> G
-    end;
-key_down(_, G) ->
-    G.
+    end.
 
 key_up(Key, G) ->
-    if Key == left;
-       Key == right;
-       Key == down;
-       Key == up ->
-	    G#game { reqdx = 0, reqdy = 0};
-       true ->
-	    G
+    case Key of
+	left  -> G#game { reqdx = 0, reqdy = 0};
+	right -> G#game { reqdx = 0, reqdy = 0};
+	down  -> G#game { reqdx = 0, reqdy = 0};
+	up    -> G#game { reqdx = 0, reqdy = 0};
+	_ -> G
     end.
 
 now_milli() ->
-    {M,S,Us} = now(),
-    1000*(M*1000000+S)+(Us div 1000).
-
+    try erlang:system_time(milli_seconds)
+    catch error:undef ->
+	    {M,S,Us} = apply(erlang,now,[]),
+	    1000*(M*1000000+S)+(Us div 1000)
+    end.
 
 load_image(FileName) ->
     PathName = filename:join(code:priv_dir(pacman), FileName),
@@ -277,7 +276,6 @@ load_directions(FileName) ->
     epx:pixmap_rotate_area(Right, Left, math:pi()+E,0,0,Cx,Cy,Cx,Cy,W,H,[]),
     {Right,Left,Up,Down}.
 
-    
 load_images() ->
     {R2,L2,U2,D2} = load_directions("PacMan2.png"),
     {R3,L3,U3,D3} = load_directions("PacMan3.png"),
@@ -832,19 +830,25 @@ level1data() ->
 get_maze_pos(Pos, Maze) ->
     element(Pos+1, Maze).
 
+-ifdef(not_used).
 get_maze_xy(X, Y, Maze) ->
     element(?CoordToPos(X, Y)+1, Maze).
+-endif.
 
+-ifdef(not_used).
 get_maze_loc(I, J, Maze) ->
     element(?LocToPos(I, J)+1, Maze).
+-endif.
 
 %% set maze data with either straigh pos, location or coordinate
 
 set_maze_pos(Pos, Maze, Code) ->
     setelement(Pos+1, Maze, Code).
 
+-ifdef(not_used).
 set_maze_xy(X, Y, Maze, Code) ->
-    setelement(?CoordToPos(X,Y)+1, Maze, Code).    
+    setelement(?CoordToPos(X,Y)+1, Maze, Code).
+-endif.
 
 set_maze_loc(I, J, Maze, Code) ->
     setelement(?LocToPos(I,J)+1, Maze, Code).
@@ -866,14 +870,6 @@ each(I, N, Fun) ->
 	    Fun(I),
 	    each(I+1, N, Fun)
     end.
-
-each(I, Step, N, Fun) ->
-    if I > N -> ok;
-       true ->
-	    Fun(I),
-	    each(I+Step, Step, N, Fun)
-    end.
-
 
 while(Acc, Done, Body) ->
     case Done(Acc) of
