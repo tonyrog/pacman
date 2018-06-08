@@ -14,6 +14,8 @@
 
 -export([start_link_embedded_fb/0]).
 -export([start_link_embedded_x11/0]).
+-export([start_link_rpi_touch_fb/0]).
+
 -export([run_game1/2]).
 
 -import(lists, [map/2]).
@@ -167,6 +169,16 @@ start_link_embedded_fb() ->
     epx_backend:start_link([{backend,"fb"},{pixel_format,r5g6b5}]),
     W = epx:window_create(0,0,800,480,[key_press,key_release]),
     P = epx:pixmap_create(800, 480, r5g6b5),
+    Backend = epx_backend:default(),
+    epx:window_attach(W, Backend),
+    epx:pixmap_attach(P, Backend),
+    run_game1(W, P).
+
+%% start on rpi with 7 inch touch 
+start_link_rpi_touch_fb() ->
+    epx_backend:start_link([{backend,"fb"},{pixel_format,'argb/little'}]),
+    W = epx:window_create(0,0,800,480,[key_press,key_release]),
+    P = epx:pixmap_create(800, 480, 'argb/little'),
     Backend = epx_backend:default(),
     epx:window_attach(W, Backend),
     epx:pixmap_attach(P, Backend),
