@@ -176,7 +176,10 @@ start_link_embedded_fb() ->
 
 %% start on rpi with 7 inch touch 
 start_link_rpi_touch_fb() ->
-    epx_backend:start_link([{backend,"fb"},{pixel_format,'argb/little'}]),
+    ok = application:load(epx),
+    application:set_env(epx, backend, "fb"),
+    application:set_env(epx, pixel_format, 'argb/little'),
+    application:start(epx),
     W = epx:window_create(0,0,800,480,[key_press,key_release]),
     P = epx:pixmap_create(800, 480, 'argb/little'),
     Backend = epx_backend:default(),
