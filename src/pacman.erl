@@ -24,6 +24,9 @@
 -define(dbg(F,A), ok).
 -endif.
 
+-export([level1data/0]).
+-export([dump_maze_data/1]).
+
 -include_lib("epx/include/epx_image.hrl").
 
 -define(WALL_LEFT,  16#01).
@@ -33,18 +36,18 @@
 -define(FOOD_SMALL, 16#10).
 -define(FOOD_BIG,   16#20).
 
--define(IS_WALL_LEFT(Z), (((Z) band ?WALL_LEFT) =/= 0)).
--define(IS_WALL_RIGHT(Z), (((Z) band ?WALL_RIGHT) =/= 0)).
--define(IS_WALL_ABOVE(Z), (((Z) band ?WALL_ABOVE) =/= 0)).
--define(IS_WALL_BELOW(Z), (((Z) band ?WALL_BELOW) =/= 0)).
+-define(IS_WALL_LEFT(Z),  (((Z) band ?WALL_LEFT) =:= ?WALL_LEFT)).
+-define(IS_WALL_RIGHT(Z), (((Z) band ?WALL_RIGHT) =:= ?WALL_RIGHT)).
+-define(IS_WALL_ABOVE(Z), (((Z) band ?WALL_ABOVE) =:= ?WALL_ABOVE)).
+-define(IS_WALL_BELOW(Z), (((Z) band ?WALL_BELOW) =:= ?WALL_BELOW)).
 
--define(NO_WALL_LEFT(Z), (((Z) band ?WALL_LEFT) == 0)).
--define(NO_WALL_RIGHT(Z), (((Z) band ?WALL_RIGHT) == 0)).
--define(NO_WALL_ABOVE(Z), (((Z) band ?WALL_ABOVE) == 0)).
--define(NO_WALL_BELOW(Z), (((Z) band ?WALL_BELOW) == 0)).
+-define(NO_WALL_LEFT(Z),  (((Z) band ?WALL_LEFT) =:= 0)).
+-define(NO_WALL_RIGHT(Z), (((Z) band ?WALL_RIGHT) =:= 0)).
+-define(NO_WALL_ABOVE(Z), (((Z) band ?WALL_ABOVE) =:= 0)).
+-define(NO_WALL_BELOW(Z), (((Z) band ?WALL_BELOW) =:= 0)).
 
--define(IS_FOOD_SMALL(Z), (((Z) band ?FOOD_SMALL) =/= 0)).
--define(IS_FOOD_BIG(Z),   (((Z) band ?FOOD_BIG) =/= 0)).
+-define(IS_FOOD_SMALL(Z), (((Z) band ?FOOD_SMALL) =:= ?FOOD_SMALL)).
+-define(IS_FOOD_BIG(Z),   (((Z) band ?FOOD_BIG) =:= ?FOOD_BIG)).
 
 -record(images,
 	{
@@ -106,7 +109,7 @@
 	{
 	  goff,            %% offscreem pixmap
 	  win,             %% window
-	  width,           %% screem width
+	  width,           %% screen width
 	  height,          %% screen height
 
 	  images,          %% #images {}
@@ -165,7 +168,7 @@ start_link() ->
 %% test - create window and backing pixmap 800x480
 start_link_embedded_fb() ->
     epx_backend:start_link([{backend,"fb"},{pixel_format,r5g6b5}]),
-    W = epx:window_create(0,0,800,480,[key_press,key_release]),
+    W = epx:window_create(0,0,800,480,[key_press,key_release,no_auto_repeat]),
     P = epx:pixmap_create(800, 480, r5g6b5),
     Backend = epx_backend:default(),
     epx:window_attach(W, Backend),
@@ -174,14 +177,13 @@ start_link_embedded_fb() ->
 
 start_link_embedded_x11() ->
     epx_backend:start_link([{backend,"x11"}]),
-    W = epx:window_create(0,0,800,480,[key_press,key_release]),
+    W = epx:window_create(0,0,800,480,[key_press,key_release,no_auto_repeat]),
     P = epx:pixmap_create(800, 480, r5g6b5),
     Backend = epx_backend:default(),
     epx:window_attach(W, Backend),
     epx:pixmap_attach(P, Backend),
     run_game1(W, P).
     
-
 run_game1(W, P) ->
     game_loop(init1(W, P)).
 
@@ -189,12 +191,16 @@ run_game(Backend) ->
     game_loop(init(Backend)).
 
 game_loop(G) when G#game.quit == true ->
-    final(G);
+    R = final(G),
+    case lists:keymember(noshell, 1, init:get_arguments()) of
+	true -> halt(0);
+	false -> R
+    end;
 game_loop(G) ->
     T0 = now_milli(),
     G1 = paint(G),
     T1 = now_milli(),
-    T = (T0+40)-T1,
+    T = (T0+50)-T1,  %% 40
     if T =< 0 ->
 	    game_loop(G1);
        true ->
@@ -207,12 +213,17 @@ game_loop(G) ->
 %% poll all key events
 check_input(G) ->
     receive
-	{epx_event,_Win, destroy} ->
+	{epx_event,_Win, close} ->
 	    G#game { quit = true };
 	{epx_event,_Win,{key_press,Sym,_Mod,_Code}} ->
+	    io:format("pacman: key_press = ~w\n", [Sym]),
 	    check_input(key_down(Sym, G));
 	{epx_event,_Win,{key_release,Sym,_Mod,_Code}} ->
-	    check_input(key_up(Sym, G))
+	    io:format("pacman: key_release = ~w\n", [Sym]),
+	    check_input(key_up(Sym, G));
+	{epx_event, _W, What} ->
+	    io:format("pacman: What = ~p\n", [What]),
+	    check_input(G)
     after 0 ->
 	    G
     end.
@@ -239,10 +250,10 @@ key_down(Key, G) ->
 
 key_up(Key, G) ->
     case Key of
-	left  -> G#game { reqdx = 0, reqdy = 0};
-	right -> G#game { reqdx = 0, reqdy = 0};
-	down  -> G#game { reqdx = 0, reqdy = 0};
-	up    -> G#game { reqdx = 0, reqdy = 0};
+	left  -> G#game { reqdx = 0 };  %% reqdy = 0
+	right -> G#game { reqdx = 0 };  %% reqdy = 0
+	down  -> G#game { reqdy = 0};   %% reqdx = 0,
+	up    -> G#game { reqdy = 0};   %% reqdx = 0,
 	_ -> G
     end.
 
@@ -287,7 +298,6 @@ load_images() ->
 	      ghost2=load_image("Ghost2.png"),
 	      ghostscared1=load_image("GhostScared1.png"),
 	      ghostscared2=load_image("GhostScared2.png"),
-
 	      pacman_left  = {P,L2,L3,L4},
 	      pacman_right = {P,R2,R3,R4},
 	      pacman_up    = {P,U2,U3,U4},
@@ -302,7 +312,8 @@ final(G) ->
 init(Backend) ->
     Width = ?BlockSize*?NBlocks,
     Height = (?BlockSize+1)*?NBlocks,
-    Win    = epx:window_create(50, 50, Width, Height,[key_press,key_release]),
+    Win    = epx:window_create(50, 50, Width, Height,
+			       [key_press,key_release,no_auto_repeat]),
     epx:window_attach(Win, Backend),
     Pix  = epx:pixmap_create(Width, Height),
     epx:pixmap_attach(Pix, Backend),
@@ -351,7 +362,7 @@ level_continue(G) ->
     NrOfGhosts   = G#game.nrofghosts,
 
     Ghost = map(fun(I) ->
-			Random = random:uniform(CurrentSpeed),
+			Random = rand:uniform(CurrentSpeed),
 			Speed  = element(Random,?ValidSpeeds),
 			#ghost { y  = 7*?BlockSize,
 				 x  = 7*?BlockSize,
@@ -393,6 +404,7 @@ paint(G) ->
 		 play_demo(G3)
 	 end,
     epx:pixmap_draw(Goff, G4#game.win, 0, 0, 0, 0, G4#game.width, G4#game.height),
+    epx:sync(Goff, G4#game.win),
     G4.
 
 draw_maze(G) ->
@@ -710,13 +722,13 @@ draw_ghost(G, H) ->
     X = H#ghost.x,
     Y = H#ghost.y,
     Image = G#game.images,
-    if G#game.ghostanimpos == 0, G#game.scared == false ->
+    if G#game.ghostanimpos =:= 0, not G#game.scared ->
 	    draw_image(G, Image#images.ghost1, X+1, Y+1);
-       G#game.ghostanimpos == 1, G#game.scared == false ->
+       G#game.ghostanimpos =:= 1, not G#game.scared ->
 	    draw_image(G, Image#images.ghost2, X+1, Y+1);
-       G#game.ghostanimpos == 0, G#game.scared == true ->
+       G#game.ghostanimpos =:= 0, G#game.scared ->
 	    draw_image(G, Image#images.ghostscared1, X+1, Y+1);
-       G#game.ghostanimpos == 1, G#game.scared == true ->
+       G#game.ghostanimpos =:= 1, G#game.scared ->
 	    draw_image(G, Image#images.ghostscared2, X+1, Y+1);
        true ->
 	    ok
@@ -741,7 +753,7 @@ move_ghosts(G, [], Acc) ->
 move_ghost(G, H) ->
     Maze = G#game.maze,
     {Dx,Dy} =
-	if ?XToLoc(H#ghost.x) == 0, ?YToLoc(H#ghost.y) == 0 ->
+	if ?XToLoc(H#ghost.x) =:= 0, ?YToLoc(H#ghost.y) =:= 0 ->
 		Pos = ?CoordToPos(H#ghost.x,H#ghost.y),
 		Z = get_maze_pos(Pos, Maze),
 		LDxy =
@@ -771,7 +783,7 @@ move_ghost(G, H) ->
 			   true -> { -H#ghost.dx, -H#ghost.dy }
 			end;
 		   true ->
-			case random:uniform(Count) of
+			case rand:uniform(Count) of
 			    1 -> [Dxy|_] = LDxy, Dxy;
 			    2 -> [_,Dxy|_] = LDxy, Dxy;
 			    3 -> [_,_,Dxy|_] = LDxy, Dxy;
@@ -807,24 +819,108 @@ move_ghost(G, H) ->
 %%
 %% Maze stuff
 %%
+%% level1data() ->
+%%     {
+%%       13,1A,1A,16,09,0C,13,1A,16,09,0C,13,1A,1A,16,
+%%       25,0B,0E,11,1A,1A,14,0F,11,1A,1A,14,0B,0E,25,
+%%       11,1A,1A,14,0B,06,11,1A,14,03,0E,11,1A,1A,14,
+%%       15,03,06,19,16,05,15,07,15,05,13,1C,03,06,15,
+%%       15,09,08,0E,15,0D,15,05,15,0D,15,0B,08,0C,15,
+%%       19,12,1A,12,18,12,1C,05,19,12,18,12,1A,12,1C,
+%%       06,15,07,15,07,15,0B,08,0E,15,07,15,07,15,03,
+%%       04,15,05,15,05,15,0B,0A,0E,15,05,15,05,15,01,
+%%       0C,15,0D,15,0D,15,0B,0A,0E,15,0D,15,0D,15,09,
+%%       13,18,1A,18,1A,10,1A,12,1A,10,1A,18,1A,18,16,
+%%       15,03,02,02,06,15,0F,15,0F,15,03,02,02,06,15,
+%%       15,09,08,08,04,11,1A,08,1A,14,01,08,08,0C,15,
+%%       11,1A,1A,16,0D,15,0B,02,0E,15,0D,13,1A,1A,14,
+%%       25,0B,0E,11,1A,18,16,0D,13,18,1A,14,0B,0E,25,
+%%       19,1A,1A,1C,03,06,19,1A,1C,03,06,19,1A,1A,1C
+%%       }.
+
 level1data() -> 
     { 
-	    19,26,26,22, 9,12,19,26,22, 9,12,19,26,26,22,
-	    37,11,14,17,26,26,20,15,17,26,26,20,11,14,37,
-	    17,26,26,20,11, 6,17,26,20, 3,14,17,26,26,20,
-	    21, 3, 6,25,22, 5,21, 7,21, 5,19,28, 3, 6,21,
-	    21, 9, 8,14,21,13,21, 5,21,13,21,11, 8,12,21,
-	    25,18,26,18,24,18,28, 5,25,18,24,18,26,18,28,
-	    6,21, 7,21, 7,21,11, 8,14,21, 7,21, 7,21,03,
-	    4,21, 5,21, 5,21,11,10,14,21, 5,21, 5,21, 1,
-	    12,21,13,21,13,21,11,10,14,21,13,21,13,21, 9,
-	    19,24,26,24,26,16,26,18,26,16,26,24,26,24,22,
-	    21, 3, 2, 2, 6,21,15,21,15,21, 3, 2, 2,06,21,
-	    21, 9, 8, 8, 4,17,26, 8,26,20, 1, 8, 8,12,21,
-	    17,26,26,22,13,21,11, 2,14,21,13,19,26,26,20,
-	    37,11,14,17,26,24,22,13,19,24,26,20,11,14,37,
-	    25,26,26,28, 3, 6,25,26,28, 3, 6,25,26,26,28  
-	   }.
+      19,26,26,22, 9,12,19,26,22, 9,12,19,26,26,22,
+      37,11,14,17,26,26,20,15,17,26,26,20,11,14,37,
+      17,26,26,20,11, 6,17,26,20, 3,14,17,26,26,20,
+      21, 3, 6,25,22, 5,21, 7,21, 5,19,28, 3, 6,21,
+      21, 9, 8,14,21,13,21, 5,21,13,21,11, 8,12,21,
+      25,18,26,18,24,18,28, 5,25,18,24,18,26,18,28,
+      6,21, 7,21, 7,21,11, 8,14,21, 7,21, 7,21,03,
+      4,21, 5,21, 5,21,11,10,14,21, 5,21, 5,21, 1,
+      12,21,13,21,13,21,11,10,14,21,13,21,13,21, 9,
+      19,24,26,24,26,16,26,18,26,16,26,24,26,24,22,
+      21, 3, 2, 2, 6,21,15,21,15,21, 3, 2, 2,06,21,
+      21, 9, 8, 8, 4,17,26, 8,26,20, 1, 8, 8,12,21,
+      17,26,26,22,13,21,11, 2,14,21,13,19,26,26,20,
+      37,11,14,17,26,24,22,13,19,24,26,20,11,14,37,
+      25,26,26,28, 3, 6,25,26,28, 3, 6,25,26,26,28  
+    }.
+
+%% dump to reformat in a nice way
+%% left:  right:  below:  above:
+%%  |..   ..|     ...     ---
+%%  |..   ..|     ...     ...
+%%  |..   ..|     ---     ...
+dump_maze_data(Maze) ->
+    Ms =
+	lists:map(
+	  fun(I) ->
+		  M0 = [0,0,0,0,
+			0,0,0,0,
+			0,0,0,0],
+		  M1 = if ?IS_WALL_LEFT(I) ->
+			       set_wall(M0,[1,0,0,0,
+					    1,0,0,0,
+					    1,0,0,0]);
+			  true -> M0
+		       end,
+		  M2 = if ?IS_WALL_RIGHT(I) ->
+			       set_wall(M1,[0,0,0,1,
+					    0,0,0,1,
+					    0,0,0,1]);
+			  true -> M1
+		       end,
+		  M3 = if ?IS_WALL_ABOVE(I) ->
+			       set_wall(M2,[2,2,2,2,
+					    0,0,0,0,
+					    0,0,0,0]);
+			  true -> M2
+		       end,
+		  M4 = if ?IS_WALL_BELOW(I) ->
+			       set_wall(M3,[0,0,0,0,
+					    0,0,0,0,
+					    2,2,2,2]);
+			  true -> M3
+		       end,
+		  ascii_wall_patch(M4)
+	  end, tuple_to_list(Maze)),
+    emit_maze_data(Ms).
+
+emit_maze_data([]) ->
+    ok;
+emit_maze_data(Ms) ->
+    {L3, Ms1} = lists:split(?NBlocks, Ms),
+    lists:foreach(
+      fun(I) ->
+	      io:put_chars([[element(I, M) || M <- L3 ],"\n"])
+      end, lists:seq(1,3)),
+    emit_maze_data(Ms1).
+
+set_wall(As, Bs) ->
+    [(A bor B) || {A,B} <- lists:zip(As,Bs)].
+
+ascii_wall_patch(As) ->
+    [A1,A2,A3,A4,B1,B2,B3,B4,C1,C2,C3,C4] = ascii_wall(As),
+    {[A1,A2,A3,A4],[B1,B2,B3,B4],[C1,C2,C3,C4]}.
+
+ascii_wall(As) ->
+    [ case A of
+	  0 -> $\s;
+	  1 -> $|;
+	  2 -> $-;
+	  3 -> $+
+      end || A <- As].
 
 %% get maze data with either straigh pos, location or coordinate
 get_maze_pos(Pos, Maze) ->
