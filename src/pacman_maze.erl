@@ -108,17 +108,27 @@
 
 -define(BlockSize, 24). %% in pixels
 
-sign(X) when is_number(X)      ->
+
+demo() ->
+    {ok,Game} = start(),
+    pacman_ghost:start(Game, 1),
+    pacman_ghost:start(Game, 2),
+    pacman_ghost:start(Game, 3),
+    pacman_ghost:start(Game, 4),
+    pacman_player:start(Game).
+
+
+sign(X) when is_number(X) ->
     if X < 0 -> -1;
        X > 0 -> 1;
        true -> 0
     end.
 
-start()                        ->
+start() ->
     epx:start(),
     gen_server:start(?MODULE, [], []).
 
-start_link()                   ->
+start_link() ->
     epx:start(),
     gen_server:start_link(?MODULE, [], []).
 
@@ -128,28 +138,22 @@ start_link()                   ->
 %%   {collision, ghost, {X,Y}, []}
 %%   Dx = -1,0,1  Dy=-1,0,1
 
-spawn_player(Game)             ->
-    spawn_player(Game,0).
-spawn_player(Game,Color)       ->
-    spawn_player(Game,Color,1).
-spawn_player(Game,Color,Speed) ->
-    gen_server:call(Game, {add_entity,player,self(),Color,Speed}).
+%% "spawn" a player, the caller must be the player process
+spawn_player(Game) ->
+    spawn_player(Game,1).
+spawn_player(Game,Color) ->
+    gen_server:call(Game, {add_entity,player,self(),Color,1}).
 
-spawn_ghost(Game,Color)        ->
+%% "spawn" a ghost, the caller must be the ghost process
+spawn_ghost(Game,Color) ->
     spawn_ghost(Game,Color,1).
-
-spawn_ghost(Game,Color,Speed)  ->
+spawn_ghost(Game,Color,Speed) ->
     gen_server:call(Game, {add_entity,ghost,self(),Color,Speed}).
-
-set_direction(Game,Id,Dir)     ->
+set_direction(Game,Id,Dir) ->
     gen_server:call(Game, {set_direction,self(),Id,Dir}).
 
-%%
-%% Ghost protocol
-%%
-
-
-init([])                       ->
+%% initialize maze
+init([]) ->
     {H,W,Data,Ps,Gs} = ascii_to_data(maze_level_2()),
     io:format("player starts = ~p\n", [Ps]),
     io:format("ghost starts = ~p\n", [Gs]),
@@ -232,6 +236,27 @@ handle_cast(_Msg, State) ->
     io:format("bad cast ~p\n", [_Msg]),
     {noreply, State}.
 
+handle_info({epx_event,_Win,{key_press,Sym,_Mod,_Code}},State) ->
+    io:format("pacman_maze: key_press = ~w\n", [Sym]),
+    ets:foldl(fun(E,_Acc) ->
+		      if E#entity.type =:= player ->
+			      E#entity.pid ! {key_down,Sym};
+			 true ->
+			      ok
+		      end
+	      end, [], State#state.entities),
+    {noreply,State};
+handle_info({epx_event,_Win,{key_release,Sym,_Mod,_Code}},State) ->
+    io:format("pacman_maze: key_release = ~w\n", [Sym]),
+    ets:foldl(fun(E,_Acc) ->
+		      if E#entity.type =:= player ->
+			      E#entity.pid ! {key_up,Sym};
+			 true ->
+			      ok
+		      end
+	      end, [], State#state.entities),
+    {noreply,State};
+
 handle_info({timeout,_TRef,tick}, State) ->
     State1 = move_entities(State),
     State2 = schedule_redraw(State1),
@@ -240,6 +265,7 @@ handle_info({timeout,_TRef,tick}, State) ->
 handle_info(redraw, State) ->
     State1 = draw_window(State),
     {noreply, State1#state { redraw = false }};
+
 handle_info({epx_event,_Win, close}, State) ->
     {stop, normal, State};
 handle_info({'DOWN',Mon,process,_Pid,_Reason}, State) ->

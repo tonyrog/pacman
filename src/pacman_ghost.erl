@@ -19,24 +19,20 @@
 	  style  = random :: random | left | right
 	}).
 
-start(Game) ->
-    start(Game, 1).
+start(Game) -> start(Game, 1).
+start(Game, Color) -> start(Game, Color, 1).
+start(Game, Color, Speed) -> start(Game, Color, Speed, random).
 
-start(Game, Color) ->
-    start(Game, Color, 1).
-
-start(Game, Color, Speed) ->
-    start(Game, Color, Speed, random).
-
-start(Game, Color, Speed, Style) ->
-    spawn_link(fun() ->
-		       {ok,Id,Pos} = pacman_maze:spawn_ghost(Game,Color,Speed),
-		       loop(Game, #state{ id=Id,
-					  position=Pos,
-					  color = Color, 
-					  speed = Speed,
-					  style = Style })
-	       end).
+start(Game,Color,Speed,Style) ->
+    spawn_link(
+      fun() ->
+	      {ok,Id,Pos} = pacman_maze:spawn_ghost(Game,Color,Speed),
+	      loop(Game, #state{ id=Id,
+				 position=Pos,
+				 color = Color, 
+				 speed = Speed,
+				 style = Style })
+      end).
 
 %% simple ghost
 %% 1 - 
@@ -67,7 +63,7 @@ loop(Game, State) ->
 	    Dir = select_direction(State#state.style, Ds1),
 	    pacman_maze:set_direction(Game,Id,Dir),
 	    loop(Game,State);
-	{collision,Game,Id,Pos,Dir,Parties} ->
+	{collision,Game,_Id,_Pos,_Dir,Parties} ->
 	    io:format("collision ~p\n", [Parties]),
 	    stop;
 	Other ->

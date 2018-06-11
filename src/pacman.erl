@@ -12,9 +12,10 @@
 -export([start/0, start_link/0]).
 -export([run_game/1]).
 
+-export([start_rpi/0]).
 -export([start_link_embedded_fb/0]).
 -export([start_link_embedded_x11/0]).
--export([start_link_rpi_touch_fb/0]).
+
 
 -export([run_game1/2]).
 
@@ -177,8 +178,17 @@ start_link_embedded_fb() ->
     epx:pixmap_attach(P, Backend),
     run_game1(W, P).
 
+start_link_embedded_x11() ->
+    epx_backend:start_link([{backend,"x11"}]),
+    W = epx:window_create(0,0,800,480,[key_press,key_release,no_auto_repeat]),
+    P = epx:pixmap_create(800, 480, r5g6b5),
+    Backend = epx_backend:default(),
+    epx:window_attach(W, Backend),
+    epx:pixmap_attach(P, Backend),
+    run_game1(W, P).
+
 %% start on rpi with 7 inch touch 
-start_link_rpi_touch_fb() ->
+start_rpi() ->
     ok = application:load(epx),
     application:set_env(epx, backend, "fb"),
     application:set_env(epx, pixel_format, 'argb/little'),
@@ -190,15 +200,6 @@ start_link_rpi_touch_fb() ->
     epx:pixmap_attach(P, Backend),
     run_game1(W, P).
 
-start_link_embedded_x11() ->
-    epx_backend:start_link([{backend,"x11"}]),
-    W = epx:window_create(0,0,800,480,[key_press,key_release,no_auto_repeat]),
-    P = epx:pixmap_create(800, 480, r5g6b5),
-    Backend = epx_backend:default(),
-    epx:window_attach(W, Backend),
-    epx:pixmap_attach(P, Backend),
-    run_game1(W, P).
-    
 run_game1(W, P) ->
     game_loop(init1(W, P)).
 

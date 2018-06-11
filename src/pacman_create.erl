@@ -1,7 +1,7 @@
 %%% @author Tony Rogvall <tony@rogvall.se>
 %%% @copyright (C) 2016, Tony Rogvall
 %%% @doc
-%%%    Draw the pacman character
+%%%    Draw the pacman characters
 %%% @end
 %%% Created : 14 Aug 2016 by Tony Rogvall <tony@rogvall.se>
 
