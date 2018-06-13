@@ -54,7 +54,7 @@ start(W) ->
 %% generate a random number in -AbsMax..-AbsMin AbsMin..AbsMax
 rndv(AbsMin,AbsMax) when is_integer(AbsMin), is_integer(AbsMax),
 			 AbsMin > 0, AbsMax > AbsMin ->
-    ((random:uniform(AbsMax-AbsMin+1)-1)+AbsMin)*((random:uniform(2)*2) - 3).
+    ((rand:uniform(AbsMax-AbsMin+1)-1)+AbsMin)*((rand:uniform(2)*2) - 3).
 
 
 loop(Game, W, H0, Ghosts, Pacmans) ->
@@ -158,9 +158,9 @@ draw_pacman(Pixels,Color,W,Dir,Yam) ->
     X0 = 2,
     Y0 = 2,
     W2 = W div 2,
-    _W4 = W div 4,
+    %% _W4 = W div 4,
     W8 = W div 8,
-    _W16 = W div 16,
+    %% _W16 = W div 16,
     epx_gc:set_fill_style(solid),
     epx_gc:set_fill_color(Color),
     epx_gc:set_border_color(black),
@@ -187,8 +187,10 @@ draw_pacman(Pixels,Color,W,Dir,Yam) ->
     Pw  = W8,
     Ph  = W8+1,
 
-    Px = trunc(X1+W8*math:cos(-((Dir+Yam)+30)*DegRad)),
-    Py = trunc(Y1+W8*math:sin(-((Dir+Yam)+30)*DegRad)),
+    %% Px = trunc(X1+W8*math:cos(-((Dir+Yam)+30)*DegRad)),
+    %% Py = trunc(Y1+W8*math:sin(-((Dir+Yam)+30)*DegRad)),
+    Px = trunc(X1+W8*math:cos((Dir+45)*DegRad)),
+    Py = trunc(Y1+W8*math:sin((Dir+45)*DegRad)),
 
     epx_gc:set_fill_color(black),
     epx:draw_ellipse(Pixels, Px, Py, Pw, Ph),
