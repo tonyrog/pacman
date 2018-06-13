@@ -38,16 +38,21 @@ start(W) ->
     Pacmans = 
 	lists:map(
 	  fun({Color,I}) ->
+		  {Vx,Vy} = case I of
+				0 -> {25, 0};
+				1 -> {0, -25};
+				2 -> {25, 25}
+			    end,
 		  Y = 50,
 		  X = 20+I*W+I*10,
 		  {ok,Ref} = epx_sprite:create(Game, W, H, 
 					       [{x,X},{y,Y},
-						{vx,rndv(10,100)},
-						{vy,rndv(10,100)}]),
+						{vx,Vx},
+						{vy,Vy}]),
 		  Pixels = make_pacman(Color,W,0,0),
 		  epx_sprite:set_image(Game,Ref,Pixels),
 		  {Ref,Color,Pixels}
-	  end, [{yellow,0},{blue,1}]),
+	  end, [{yellow,0},{orange,1},{gray,2}]),
     loop(Game, W, H0, Ghosts, Pacmans).
 
 
@@ -152,15 +157,20 @@ make_pacman(Color,W,Dir,Yam) ->
     Pixels = epx:pixmap_create(W, H),
     draw_pacman(Pixels,Color,W,Dir,Yam).
 
-%% Dir = 0 = left, 90 = up, 180 = right, 270 = down
+%% Dir 
+%%     0 = right
+%%    90 = up
+%%   180 = left
+%%   270 = down
 %% Yam = mouth angle (/2)
 draw_pacman(Pixels,Color,W,Dir,Yam) ->
     X0 = 2,
     Y0 = 2,
     W2 = W div 2,
-    %% _W4 = W div 4,
+    W4 = W div 4,
     W8 = W div 8,
-    %% _W16 = W div 16,
+    %% io:format("Dir=~w, W=~w, Yam=~w\n", [Dir,W,Yam]),
+    W16 = W div 16,
     epx_gc:set_fill_style(solid),
     epx_gc:set_fill_color(Color),
     epx_gc:set_border_color(black),
@@ -175,24 +185,38 @@ draw_pacman(Pixels,Color,W,Dir,Yam) ->
 
     DegRad = math:pi()/180,
 
-    Y2 = trunc(Y1+W2*math:sin((Dir+Yam)*DegRad)),
-    Y3 = trunc(Y1+W2*math:sin((Dir-Yam)*DegRad)),
-    X2 = trunc(X1+W*math:cos((Dir)*DegRad)),
+    YA1 = Dir+(Yam div 2),
+    YA2 = Dir-(Yam div 2),
+    X2 = trunc(X1+W*math:cos(YA1*DegRad)),
+    Y2 = trunc(Y1+W*math:sin(YA1*DegRad)),
+
+    X3 = trunc(X1+W*math:cos(YA2*DegRad)),
+    Y3 = trunc(Y1+W*math:sin(YA2*DegRad)),
 
     epx_gc:set_fill_style(solid),
     epx_gc:set_fill_color({0,0,0,0}),
-    epx:draw_triangle(Pixels, {X1,Y1}, {X2,Y2}, {X2, Y3}),
+    %% epx_gc:set_fill_style(none),
+    %% epx_gc:set_foreground_color(black),
+    
+    epx:draw_triangle(Pixels, {X1,Y1}, {X2,Y2}, {X3,Y3}),
 
     %% draw eye
-    Pw  = W8,
-    Ph  = W8+1,
+    WSize = W8+8,
+    WSize2 = WSize div 2,
 
-    %% Px = trunc(X1+W8*math:cos(-((Dir+Yam)+30)*DegRad)),
-    %% Py = trunc(Y1+W8*math:sin(-((Dir+Yam)+30)*DegRad)),
-    Px = trunc(X1+W8*math:cos((Dir+45)*DegRad)),
-    Py = trunc(Y1+W8*math:sin((Dir+45)*DegRad)),
+    ESize = W16+4,
+    ESize2 = ESize div 2,
+
+    EA = if Dir >= 180 -> Dir+55;
+	    true -> Dir-55
+	 end,
+    Px = trunc(X1+W4*math:cos(EA*DegRad)),
+    Py = trunc(Y1+W4*math:sin(EA*DegRad)),
+
+    epx_gc:set_fill_color(white),
+    epx:draw_ellipse(Pixels, Px-WSize2, Py-WSize2, WSize, WSize),
 
     epx_gc:set_fill_color(black),
-    epx:draw_ellipse(Pixels, Px, Py, Pw, Ph),
+    epx:draw_ellipse(Pixels, Px-ESize2, Py-ESize2, ESize, ESize),
     
     Pixels.
