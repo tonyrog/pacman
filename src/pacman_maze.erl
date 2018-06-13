@@ -111,10 +111,10 @@
 
 demo() ->
     {ok,Game} = start(),
-    pacman_ghost:start(Game, 1),
-    pacman_ghost:start(Game, 2),
-    pacman_ghost:start(Game, 3),
-    pacman_ghost:start(Game, 4),
+    pacman_ghost:start(Game, 1, 3),
+    pacman_ghost:start(Game, 2, 3),
+    pacman_ghost:start(Game, 3, 3),
+    pacman_ghost:start(Game, 4, 3),
     pacman_player:start(Game).
 
 
@@ -154,7 +154,7 @@ set_direction(Game,Id,Dir) ->
 
 %% initialize maze
 init([]) ->
-    {H,W,Data,Ps,Gs} = ascii_to_data(maze_level_2()),
+    {H,W,Data,Ps,Gs} = ascii_to_data(maze_level_4()),
     io:format("player starts = ~p\n", [Ps]),
     io:format("ghost starts = ~p\n", [Gs]),
     Width  = W*?BlockSize,
@@ -305,43 +305,80 @@ schedule_redraw(State) ->
 
 %% Ascii version of maze
 maze_level_1() ->
-    [ "XXXXXXXXXXXXXXXXX",
-      "X    XX   XX    X",
-      "X@XX    X    XX@X",
-      "X    XX   XX    X",
-      "X XX  X X X  XX X",
-      "X XXX X X X XXX X",
-      "X       X       X",
-      "XX X X XXX X X XX",
-      "XX X X O#  X X XX",
-      "XX X X XXX X X XX",
-      "X       &       X",
-      "X XXXX X X XXXX X",
-      "X XXXX     XXXX X",
-      "X    X XXX X    X",
-      "X@XX    X    XX@X",
-      "X    XX   XX    X",
-      "XXXXXXXXXXXXXXXXX"
+    [
+     "XXXXXXXXXXXXXXXXX",
+     "X    XX   XX    X",
+     "X@XX    X    XX@X",
+     "X    XX   XX    X",
+     "X XX  X X X  XX X",
+     "X XXX X X X XXX X",
+     "X       X       X",
+     "XX X X XXX X X XX",
+     "XX X X O#  X X XX",
+     "XX X X XXX X X XX",
+     "X       &       X",
+     "X XXXX X X XXXX X",
+     "X XXXX     XXXX X",
+     "X    X XXX X    X",
+     "X@XX    X    XX@X",
+     "X    XX   XX    X",
+     "XXXXXXXXXXXXXXXXX"
     ].
 
 maze_level_2() ->
-    [ "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
-      "X    XX   XX    X    XX   XX    X",
-      "X@XX    X    XX@X@XX    X    XX@X",
-      "X    XX & XX    X    XX & XX    X",
-      "X XX  X X X  XX X XX  X X X  XX X",
-      "X XXX X X X XXX X XXX X X X XXX X",
-      "X       X       X       X       X",
-      "XX X X XXX X X XXX X X XXX X X XX",
-      "XX X X O#  X X  #  X X O#  X X XX",
-      "XX X X XXX X X XXX X X XXX X X XX",
-      "X       &       X       &       X",
-      "X XXXX X X XXXX X XXXX X X XXXX X",
-      "X XXXX     XXXX X XXXX     XXXX X",
-      "X    X XXX X    X    X XXX X    X",
-      "X@XX    X    XX@X@XX    X    XX@X",
-      "X    XX   XX    X    XX   XX    X",
-      "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+    [
+     "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+     "X    XX   XX    X    XX   XX    X",
+     "X@XX    X    XX@X@XX    X    XX@X",
+     "X    XX & XX    X    XX & XX    X",
+     "X XX  X X X  XX X XX  X X X  XX X",
+     "X XXX X X X XXX X XXX X X X XXX X",
+     "X       X       X       X       X",
+     "XX X X XXX X X XXX X X XXX X X XX",
+     "XX X X O#  X X  #  X X O#  X X XX",
+     "XX X X XXX X X XXX X X XXX X X XX",
+     "X       &       X       &       X",
+     "X XXXX X X XXXX X XXXX X X XXXX X",
+     "X XXXX     XXXX X XXXX     XXXX X",
+     "X    X XXX X    X    X XXX X    X",
+     "X@XX    X    XX@X@XX    X    XX@X",
+     "X    XX   XX    X    XX   XX    X",
+     "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+    ].
+
+maze_level_4() ->
+    [
+     "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+     "X    XX   XX    X    XX   XX    X    XX   XX    X    XX   XX    X",
+     "X@XX    X    XX@X@XX    X    XX@X@XX    X    XX@X@XX    X    XX@X",
+     "X    XX & XX    X    XX & XX    X    XX & XX    X    XX & XX    X",
+     "X XX  X X X  XX X XX  X X X  XX X XX  X X X  XX X XX  X X X  XX X",
+     "X XXX X X X XXX X XXX X X X XXX X XXX X X X XXX X XXX X X X XXX X",
+     "X       X       X       X       X       X       X       X       X",
+     "XX X X XXX X X XXX X X XXX X X XXX X X XXX X X XXX X X XXX X X XX",
+     "XX X X O#  X X  #  X X O#  X X     X X O#  X X  #  X X O#  X X XX",
+     "XX X X XXX X X XXX X X XXX X X XXX X X XXX X X XXX X X XXX X X XX",
+     "X       &       X       &       X       &       X       &       X",
+     "X XXXX X X XXXX X XXXX X X XXXX X XXXX X X XXXX X XXXX X X XXXX X",
+     "X XXXX     XXXX X XXXX     XXXX X XXXX     XXXX X XXXX     XXXX X",
+     "X    X XXX X    X    X XXX X    X    X XXX X    X    X XXX X    X",
+     "X@XX    X    XX@X@XX    X    XX@X@XX    X    XX@X@XX    X    XX@X",
+     "X    XX   XX    X    XX   XX    X    XX   XX    X    XX   XX    X",
+     "X@XX    X    XX@X@XX    X    XX@X@XX    X    XX@X@XX    X    XX@X",
+     "X    XX & XX    X    XX & XX    X    XX & XX    X    XX & XX    X",
+     "X XX  X X X  XX X XX  X X X  XX X XX  X X X  XX X XX  X X X  XX X",
+     "X XXX X X X XXX X XXX X X X XXX X XXX X X X XXX X XXX X X X XXX X",
+     "X       X       X       X       X       X       X       X       X",
+     "XX X X XXX X X XXX X X XXX X X XXX X X XXX X X XXX X X XXX X X XX",
+     "XX X X O#  X X  #  X X O#  X X       X O#  X X  #  X X O#  X X XX",
+     "XX X X XXX X X XXX X X XXX X X XXX X X XXX X X XXX X X XXX X X XX",
+     "X       &       X       &       X       &       X       &       X",
+     "X XXXX X X XXXX X XXXX X X XXXX X XXXX X X XXXX X XXXX X X XXXX X",
+     "X XXXX     XXXX X XXXX     XXXX   XXXX     XXXX X XXXX     XXXX X",
+     "X    X XXX X    X    X XXX X    X    X XXX X    X    X XXX X    X",
+     "X@XX    X    XX@X@XX    X    XX@X@XX    X    XX@X@XX    X    XX@X",
+     "X    XX   XX    X    XX   XX    X    XX   XX    X    XX   XX    X",
+     "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
     ].
 
 draw_maze(Maze, Pixels, Profile) ->
