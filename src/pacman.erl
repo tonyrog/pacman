@@ -13,6 +13,7 @@
 -export([run_game/1]).
 
 -export([start_rpi/0]).
+-export([start_pine/0]).
 -export([start_link_embedded_fb/0]).
 -export([start_link_embedded_x11/0]).
 
@@ -192,9 +193,23 @@ start_rpi() ->
     ok = application:load(epx),
     application:set_env(epx, backend, "fb"),
     application:set_env(epx, pixel_format, 'argb/little'),
-    application:start(epx),
+    application:ensure_all_started(epx),
     W = epx:window_create(0,0,800,480,[key_press,key_release]),
     P = epx:pixmap_create(800, 480, 'argb/little'),
+    Backend = epx_backend:default(),
+    epx:window_attach(W, Backend),
+    epx:pixmap_attach(P, Backend),
+    run_game1(W, P).
+
+%% start on pine with 7 inch touch (720x1440)
+start_pine() ->
+    ok = application:load(epx),
+    application:set_env(epx, backend, "fb"),
+    application:set_env(epx, pixel_format, 'argb/little'),
+    application:ensure_all_started(epx),
+    application:start(epx),
+    W = epx:window_create(0,0,720,1440,[key_press,key_release]),
+    P = epx:pixmap_create(720,1440, 'argb/little'),
     Backend = epx_backend:default(),
     epx:window_attach(W, Backend),
     epx:pixmap_attach(P, Backend),
