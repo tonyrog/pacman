@@ -1,12 +1,9 @@
 {application, pacman,
  [
-  {description, ""},
-  {vsn, "1"},
-  {registered, []},
-  {applications, [
-                  kernel,
-                  stdlib
-                 ]},
-  {mod, { pacman_app, []}},
-  {env, []}
+  {description, "Port of pacman for demo"},
+  {vsn, git},
+  {modules, ["@@MODULES@@"]},
+  {mod, { pacman_app, []}},  
+  {env, []},
+  {applications, [kernel,stdlib,epx]}
  ]}.
